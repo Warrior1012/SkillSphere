@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/*
+  SkillSphere design tokens.
+  Direction: "verified local professional registry" — not generic SaaS.
+  See IMPLEMENTATION_REPORT.md for the full rationale.
+*/
+@theme {
+  /* --- Color: 6 named tokens, deliberately not the cream+terracotta,
+     black+neon, or hairline-broadsheet defaults --- */
+  --color-ink: #12151c;       /* text, dark surfaces (sidebar, footer) */
+  --color-ink-soft: #2a2f3a;  /* lighter dark surface, hovers on ink bg */
+  --color-paper: #eef0ea;     /* app background — cool stone, not cream */
+  --color-paper-raised: #f8f9f5; /* cards on top of paper */
+  --color-brass: #a9782f;     /* signature accent — verification/credential/CTA */
+  --color-brass-soft: #d9c396; /* brass tints (badges, subtle fills) */
+  --color-pine: #1f5c4f;      /* freelancer-side accent, success */
+  --color-pine-soft: #d7e6e2;
+  --color-clay: #8c3b2e;      /* client-side accent, warnings — muted, not bright terracotta */
+  --color-clay-soft: #ecd9d4;
+  --color-slate: #5b6472;     /* borders, muted text */
+  --color-slate-soft: #dde1e6;
+
+  /* --- Type: slab display (credential/ledger feel) + Plex sans body +
+     Plex mono for stats/skill-tags/reputation numbers --- */
+  --font-display: 'Zilla Slab', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --radius-seal: 999px;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Seal motif: recurring visual signature for the verification system.
+   Used on verified-freelancer avatars, the logo mark, and section markers. */
+.seal-ring {
+  box-shadow:
+    0 0 0 2px var(--color-paper),
+    0 0 0 4px var(--color-brass);
+}
+
+@keyframes seal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.seal-spinner {
+  animation: seal-spin 0.9s linear infinite;
+}
