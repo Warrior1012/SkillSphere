@@ -97,5 +97,6 @@ Documented in detail in each subproject's README, summarized here:
 
 ## License
 
-Not yet specified — add a `LICENSE` file before treating this as open source
-or accepting external contributions.
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE)
+file for details.
