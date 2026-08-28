@@ -1,116 +1,101 @@
 # SkillSphere
 
-Intelligent hyperlocal freelance ecosystem — MERN stack. Built against the Nayoda
-internship project spec.
+An intelligent hyperlocal freelance marketplace — clients post work, verified
+local freelancers apply, and the platform handles matching, real-time
+communication, milestone-based payments, scheduling, and dispute resolution
+end to end.
 
-**Status**: Weeks 1-4 essentially complete — auth, profiles, gig marketplace,
-matching, chat, reviews/reputation, payments, admin dashboard, progress tracking,
-dispute resolution. See [`PROGRESS.md`](./PROGRESS.md) for the exact checklist and
-[`IMPLEMENTATION_REPORT.md`](./IMPLEMENTATION_REPORT.md) for architectural decisions
-— **read §11 before your review**, it explains an important limitation in the
-payment system you should be able to speak to if asked.
+Full-stack MERN application: React frontend, Node/Express API, MongoDB,
+Socket.IO for real-time features.
 
-## Stack
+## What's here
 
-- **Backend**: Node.js, Express 4, MongoDB (Mongoose), JWT auth, Socket.IO, Zod
-  validation, Stripe/Razorpay (with a working mock provider as default), Cloudinary
-- **Frontend**: React 19, Vite, Tailwind CSS v4, Redux Toolkit, TanStack Query,
-  React Router 6, Socket.IO client
+| Area | Covers |
+|---|---|
+| **Accounts & roles** | Client, freelancer, and admin roles with JWT auth, 2FA, Google OAuth, email verification, password reset |
+| **Profiles** | Freelancer skills/portfolio/experience/pricing/availability; client company info; public profile pages with reviews |
+| **Marketplace** | Gig posting with milestones and budgets, search and filtering, proposal/bidding, freelancer recommendations ranked by skill overlap, reputation, and location |
+| **Collaboration** | Real-time chat with typing indicators and read receipts; scheduled calls with automatic conflict-checked booking |
+| **Payments** | Milestone-based fund → hold → release/refund flow, with a working mock provider by default and real Stripe/Razorpay adapters available |
+| **Trust & safety** | Weighted reputation scoring, automated fraud-signal flagging on reviews, a dispute system that actually freezes payments until resolved |
+| **Admin** | User management, freelancer verification, moderation queues, and platform analytics computed from live data |
 
 ## Quick start
 
-```bash
-# 1. Backend
-cd backend
-cp .env.example .env
-# Fill in MONGO_URI at minimum — get a free cluster at mongodb.com/cloud/atlas
-npm install
-npm run dev          # → http://localhost:5000 (REST API + Socket.IO, same port)
+Two services, run separately.
 
-# 2. Frontend (new terminal)
+**Backend** — see [`backend/README.md`](./backend/README.md) for full details:
+```bash
+cd backend
+cp .env.example .env   # set MONGO_URI at minimum
+npm install
+npm run dev             # http://localhost:5000
+```
+
+**Frontend** — see [`frontend/README.md`](./frontend/README.md) for full details:
+```bash
 cd frontend
 cp .env.example .env
 npm install
-npm run dev           # → http://localhost:5173
+npm run dev              # http://localhost:5173
 ```
 
-**Full end-to-end walkthrough** (do this before the 22nd): register a client account
-and a freelancer account → client posts a gig → freelancer submits a proposal →
-client accepts → either side messages the other → client funds a milestone (works
-instantly, no payment keys needed — mock provider) → freelancer marks it in
-progress, then submitted → client approves it, watch the progress bar move → client
-releases payment → try raising a dispute on a payment and confirm release/refund is
-blocked until resolved → client marks the gig complete → both sides leave a review
-→ `npm run seed:admin`, log in as admin → check Users, Flagged Reviews, Disputes,
-and Analytics all reflect everything that just happened.
+You'll need a MongoDB connection string (a free [MongoDB Atlas](https://mongodb.com/cloud/atlas)
+cluster works — it must be a replica set, which Atlas provides by default,
+since a couple of operations use multi-document transactions).
 
-## Project structure
+Everything else — SMTP, Google OAuth, Stripe/Razorpay, Cloudinary — is
+optional. The application runs fully without any of it configured; the
+affected features degrade to a clear, explicit response (email verification
+logs to the console instead of sending, payments use a working mock provider,
+uploads return a plain "not configured" error) rather than failing silently or
+crashing.
+
+## Repository layout
 
 ```
 skillsphere/
-├── backend/
-│   ├── src/
-│   │   ├── config/        # env, db, passport, cloudinary
-│   │   ├── models/        # User, FreelancerProfile, ClientProfile, Gig, Proposal,
-│   │   │                  # Conversation, Message, Review, Notification, Payment
-│   │   ├── controllers/   # business logic
-│   │   ├── routes/        # Express routers
-│   │   ├── middleware/    # auth, rbac, validation, rate limits, upload, errors
-│   │   ├── validators/    # Zod schemas
-│   │   ├── services/
-│   │   │   └── payments/  # provider abstraction: mock / stripe / razorpay
-│   │   ├── utils/         # jwt, email, matching, fraudSignals, reputationScoring,
-│   │   │                  # notify, ApiError/ApiResponse
-│   │   ├── sockets/        # Socket.IO server (JWT-authenticated)
-│   │   └── scripts/       # seedAdmin.js
-│   └── tests/
-│       ├── *.test.js      # Jest/Supertest, mocked DB layer
-│       └── manual/        # socket-smoke-test.mjs — real connections, run by hand
-├── frontend/
-│   └── src/
-│       ├── app/            # Redux store
-│       ├── services/       # API clients (axios) + socket client singleton
-│       ├── components/     # design system, route guards, NotificationBell
-│       ├── layouts/        # AuthLayout, DashboardLayout
-│       └── pages/          # auth/, dashboard/, profile/, settings/, gigs/,
-│                            # messages/, payments/, admin/
-├── PROGRESS.md
-└── IMPLEMENTATION_REPORT.md
+├── backend/     # Express API + Socket.IO server — see backend/README.md
+├── frontend/    # React app — see frontend/README.md
+└── README.md    # this file
 ```
 
-## Testing
+## Architecture at a glance
 
-```bash
-cd backend && npm test    # 35 tests, mocked database layer
-```
+- REST API for all persistent state; Socket.IO layered on top for anything
+  that needs to be pushed live (new messages, typing indicators, in-app
+  notifications) — not a replacement for the REST API, a complement to it
+- A single `User` model with a `role` field is the hub every other collection
+  references; role-based access control is enforced server-side on every
+  protected route
+- A payment-provider abstraction picks between a mock implementation and real
+  Stripe/Razorpay adapters based on which credentials are configured, so the
+  same application code runs identically in a fully-offline dev setup and a
+  real-payments deployment
+- 55 automated backend tests (Jest + Supertest) covering authentication,
+  authorization boundaries, business-rule gates (who can transition what,
+  when), and the payment/dispute lifecycle
 
-This build environment cannot reach MongoDB Atlas, Stripe, Razorpay, or Cloudinary —
-everything is tested against mocks. **You need to do one real end-to-end pass with a
-live `MONGO_URI` yourself** before relying on this for a live demo.
+## Honest limitations
 
-## Admin accounts
+Documented in detail in each subproject's README, summarized here:
 
-Not publicly self-registerable. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in
-`backend/.env`, then `cd backend && npm run seed:admin`.
+- Payments implement a short-term authorize/capture hold, not true escrow —
+  no payment provider offers indefinite fund-holding as a simple integration;
+  see `backend/README.md` for the specifics and what a production version
+  would require.
+- The freelancer-matching feature is a deterministic scoring algorithm
+  (skill overlap, reputation, distance), not a machine-learning model.
+- Search uses MongoDB text/regex matching rather than a dedicated search
+  service.
+- No live database, payment gateway, or file-storage account was used during
+  development — all tested against mocks. Verify against your own live
+  credentials before deploying.
+- No automated frontend tests yet; no email digest for notifications; resume
+  and portfolio file uploads share a working backend endpoint that doesn't
+  yet have dedicated frontend controls beyond avatar upload.
 
-## What's next
+## License
 
-Availability Scheduler is the one genuinely unbuilt module left — see `PROGRESS.md`
-for why it was the correct thing to deprioritize. Smaller gaps: resume/portfolio
-upload UI (backend supports it), message attachments UI, frontend code-splitting.
-
-## Known trade-offs (read before your review)
-
-- Security/hardening was deliberately kept at "correct but not gold-plated" from Week
-  2 onward (explicit direction, not an oversight) — ownership/RBAC checks are
-  enforced everywhere; extra rate-limiting and exhaustive edge-case validation were
-  not layered on past what Week 1's auth system has.
-- Payments are real, working code against verified-current API docs — but genuinely
-  untested against live Stripe/Razorpay accounts, and implement a short-term hold
-  (days), not indefinite escrow. See IMPLEMENTATION_REPORT.md §11.
-- Disputes actually freeze the underlying payment (release/refund are blocked while
-  one is open) — this was a deliberate correctness decision, not just a data model.
-- The "AI matching" (Module 2) is a real, working, non-ML algorithm, not a
-  HuggingFace call — see IMPLEMENTATION_REPORT.md §4.
-- Availability Scheduler (Module 12) has no real implementation — see §13.
-- No live MongoDB was ever connected during this build.
+Not yet specified — add a `LICENSE` file before treating this as open source
+or accepting external contributions.
