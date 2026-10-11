@@ -77,7 +77,7 @@ src/
 
 ## Data model
 
-Nine top-level collections, all referencing a single `User` document with a
+Twelve top-level collections, all referencing a single `User` document with a
 `role` field (`client` / `freelancer` / `admin`) that drives access control
 throughout: `User`, `FreelancerProfile`, `ClientProfile`, `Gig`, `Proposal`,
 `Conversation`, `Message`, `Review`, `Notification`, `Payment`, `Dispute`,
